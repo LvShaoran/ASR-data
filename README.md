@@ -45,3 +45,56 @@
 [4]: https://www.aishelltech.com/aishell_4?utm_source=chatgpt.com "希尔贝壳—专注于人工智能大数据和技术的创新"
 [5]: https://www.openslr.org/111/?utm_source=chatgpt.com "openslr.org"
 
+# ASR评价指标
+
+| 名称                                 | 全称                                    | 测评内容                                                             | 计算方式                                                                              |
+| ---------------------------------- | ------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **WER**                            | Word Error Rate                       | 最经典的词级 ASR 准确率                                                   | `(S+D+I)/N`                                                                       |
+| **CER**                            | Character Error Rate                  | 字符级识别准确率，特别适合中文/CJK                                              | `(S+D+I)/N`，token=character                                                       |
+| **MER**                            | Mixed Error Rate                      | 多语言/code-switching 混合 token 的错误率                                 | 对 word-token + character-token 混合序列计算 edit distance                               |
+| **SER**                            | Sentence Error Rate                   | 有多少句话出现了至少一个错误                                                   | `错误句子数 / 总句子数`                                                                    |
+| **WAcc**                           | Word Accuracy                         | 与 WER 相反，从“正确率”角度表达 word-level performance                       | 常见简单形式 `1 − WER` ([Hugging Face][1])                                              |
+| **Substitution Rate**              | Substitution Error Rate               | 错词被替换成其他词的比例                                                     | `S/N`                                                                             |
+| **Deletion Rate**                  | Deletion Error Rate                   | 模型漏掉 reference 中内容的比例                                            | `D/N`                                                                             |
+| **Insertion Rate**                 | Insertion Error Rate                  | 模型凭空增加内容的比例                                                      | `I/N`                                                                             |
+| **cpWER**                          | Concatenated minimum Permutation WER  | **多说话人 ASR + speaker attribution**                               | 将各 speaker transcript 拼接，并寻找 reference/hypothesis speaker 间最优 permutation，再计算 WER |
+| **tcpWER**                         | Time-constrained cpWER                | 带时间约束的 multi-speaker ASR                                         | 在 cpWER 的 speaker permutation/alignment 中加入 timestamp constraint                  |
+| **ORC-WER**                        | Optimal Reference Combination WER     | 多说话人场景下**忽略 speaker identity** 后的 transcription quality          | 将多个 reference speaker streams 最优组合后，与 hypothesis 进行 WER matching                  |
+| **WDER**                           | Word Diarization Error Rate           | 单独衡量“词识别正确但 speaker attribution 错误”的情况                           | 在 word alignment 基础上统计 speaker attribution errors                                 |
+| **DER**                            | Diarization Error Rate                | **说话人分离/diarization**质量，而非纯 ASR                                  | 通常 `DER = (FA + MISS + CONF) / Total reference speech time`                       |
+| **RTF / RTFx**                     | Real-Time Factor / Real-Time Factor × | ASR 推理速度                                                         | `RTF = processing time / audio duration`；越低越快；RTFx 通常是其倒数形式 ([Hugging Face][1])   |
+| **Latency**                        | Recognition Latency                   | streaming ASR 的响应延迟                                              | 例如从 speech 到对应 token/transcript 输出的时间延迟                                           |
+| **P90/P95/P99 WER**                | Percentile WER                        | 衡量 tail utterance 的失败程度                                          | 对 utterance-level WER 分布取 90/95/99 percentile                                     |
+| **Hallucination Rate / HER**       | Hallucination Error Rate              | 模型生成了音频中不存在的内容                                                   | 统计 hallucinated content / hallucination events 的比例；具体定义依 benchmark 而异             |
+| **Semantic Error Rate**            | Semantic Error Rate / SemER           | 衡量 transcript 是否保留原始语义                                           | 基于 semantic units / intent / slots 等进行 error counting                             |
+| **BERTScore**                      | BERT-based Semantic Score             | 衡量 hypothesis 与 reference 的**语义相似度**                             | 使用 contextual embeddings，对 token embeddings 做匹配并计算 P/R/F1                         |
+| **BLEU**                           | Bilingual Evaluation Understudy       | 主要用于 **speech translation**，衡量机器翻译结果与 reference 的 n-gram overlap | 基于 modified n-gram precision + brevity penalty                                    |
+| **COMET**                          | COMET metric                          | Speech Translation / MT 的语义质量                                    | 基于神经模型学习 source/hypothesis/reference 之间的质量                                        |
+| **Punctuation Error Rate**         | Punctuation Error Rate                | transcript 中标点恢复质量                                               | 对 punctuation token 序列计算 edit distance                                            |
+| **Truecase Accuracy / Error Rate** | Truecasing metric                     | 大小写恢复能力                                                          | 比较 hypothesis 与 reference 的 capitalization                                        |
+| **ECE**                            | Expected Calibration Error            | ASR confidence 是否可靠                                              | 将 prediction confidence 分桶，比较 confidence 与实际 accuracy 的差异                         |
+| **Brier Score**                    | Brier Score                           | 概率预测的 calibration quality                                        | 通常计算预测概率与实际 binary outcome 之间的均方误差                                                |
+
+[1]: https://huggingface.co/learn/audio-course/en/chapter5/evaluation?utm_source=chatgpt.com "Evaluation metrics for ASR · Hugging Face"
+
+| 我要测什么                           | 主要指标                         |
+| ------------------------------- | ---------------------------- |
+| **普通 ASR 识别准不准？**               | **WER / CER**                |
+| **错误具体是什么？**                    | S / D / I                    |
+| **中文 / 日文 / 韩文？**               | **CER**                      |
+| **Code-switching？**             | **MER**                      |
+| **一句话有没有错？**                    | SER                          |
+| **多说话人 ASR？**                   | **cpWER / tcpWER**           |
+| **只关心 transcript，不关心 speaker？** | ORC-WER                      |
+| **说话人分离？**                      | DER                          |
+| **模型是不是会漏说？**                   | Deletion Rate                |
+| **模型是不是会瞎编？**                   | **HER / hallucination rate** |
+| **OOD 后性能掉多少？**                 | **ΔWER / ΔCER**              |
+| **是不是存在严重 tail failure？**       | **P90/P95/P99 WER**          |
+| **什么时候开始崩？**                    | **P90 Elbow / knee point**   |
+| **Prompt 换一下会不会结果完全不同？**        | **Prompt Sensitivity / σ**   |
+| **识别出来的字不完全一样，但意思对不对？**         | BERTScore / semantic metrics |
+| **是不是能实时运行？**                   | **RTF / RTFx / latency**     |
+| **confidence 靠不靠谱？**            | ECE / Brier Score            |
+| **语音翻译得好不好？**                   | BLEU / COMET 等               |
+
